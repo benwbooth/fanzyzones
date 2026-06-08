@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FanzyZones — native window snapping for macOS</title>
+<style>
+  :root { --blue:#2f7bff; --ink:#1d1d1f; --muted:#6b7280; --bg:#f5f6f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+         color:var(--ink); background:var(--bg); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 64px 24px; }
+  header { text-align:center; }
+  header img { width:128px; height:128px; border-radius:28px;
+               box-shadow:0 12px 40px rgba(47,123,255,.35); }
+  h1 { font-size:42px; margin:24px 0 8px; letter-spacing:-.02em; }
+  .tag { color:var(--muted); font-size:19px; margin:0 0 32px; }
+  .cta { display:inline-block; background:var(--blue); color:#fff; text-decoration:none;
+         padding:12px 22px; border-radius:10px; font-weight:600; margin:6px; }
+  .cta.secondary { background:#fff; color:var(--blue); border:1px solid #d6def0; }
+  pre { background:#0f172a; color:#e2e8f0; padding:16px 18px; border-radius:10px;
+        overflow:auto; font-size:14px; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 28px; margin:36px 0; }
+  .grid div { background:#fff; border:1px solid #e6e8ee; border-radius:10px; padding:14px 16px; }
+  .grid b { display:block; }
+  h2 { margin-top:48px; }
+  footer { text-align:center; color:var(--muted); margin-top:56px; font-size:14px; }
+  a { color:var(--blue); }
+  @media (max-width:560px){ .grid{grid-template-columns:1fr} h1{font-size:34px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="icon.png" alt="FanzyZones icon">
+    <h1>FanzyZones</h1>
+    <p class="tag">Native window-zone snapping for macOS. Like FancyZones, in Swift.</p>
+    <a class="cta" href="https://github.com/benwbooth/fanzyzones/releases/latest">Download DMG</a>
+    <a class="cta secondary" href="https://github.com/benwbooth/fanzyzones">View on GitHub</a>
+  </header>
+
+  <h2>Install with Homebrew</h2>
+  <pre><code>brew install --cask benwbooth/fanzyzones/fanzyzones</code></pre>
+
+  <div class="grid">
+    <div><b>Drag to snap</b>Hold Shift and drag a window into a zone — or auto-snap on any drag.</div>
+    <div><b>Keyboard shortcuts</b>⌃⌥←/→ to cycle zones, ⌃⌥1–9 to snap directly.</div>
+    <div><b>Visual menu</b>Click a pane in a layout to snap the focused window there.</div>
+    <div><b>Custom layouts</b>Draw, resize, and split panes; save named layouts.</div>
+    <div><b>Per-display</b>Assign a different layout to each monitor.</div>
+    <div><b>Configurable</b>Modifier keys, gaps, overlay color, launch at login.</div>
+  </div>
+
+  <h2>Permissions</h2>
+  <p>FanzyZones needs <b>Accessibility</b> access to move windows. It prompts on first launch —
+     enable it in <em>System Settings → Privacy &amp; Security → Accessibility</em>. The app is
+     signed but not notarized; on first open, right-click → <b>Open</b>.</p>
+
+  <footer>MIT licensed · © 2026 Ben Booth · <a href="https://github.com/benwbooth/fanzyzones">source</a></footer>
+</div>
+</body>
+</html>
