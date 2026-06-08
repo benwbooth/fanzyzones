@@ -10,7 +10,11 @@ trap 'rm -rf "$STAGE"' EXIT
 
 if [ ! -d "$APP" ]; then
     echo "Building $APP ..."
-    make app
+    if [ -n "${VERSION:-}" ]; then
+        make app VERSION="$VERSION"
+    else
+        make app
+    fi
 fi
 
 mkdir -p "$(dirname "$OUT")"
