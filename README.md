@@ -27,6 +27,8 @@ Settings and layouts are stored as JSON in `~/Library/Application Support/FanzyZ
 ### Homebrew (tap)
 
 ```sh
+brew tap benwbooth/fanzyzones
+brew trust benwbooth/fanzyzones   # newer Homebrew requires trusting third-party taps
 brew install --cask benwbooth/fanzyzones/fanzyzones
 ```
 
