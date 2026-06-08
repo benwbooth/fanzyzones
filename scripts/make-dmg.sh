@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build FanzyZones.app (via the Makefile) and package it into a drag-to-install DMG.
 # Usage: ./scripts/make-dmg.sh [output.dmg]
-set -euo pipefail
+set -eo pipefail
 
 OUT="${1:-dist/FanzyZones.dmg}"
 APP="FanzyZones.app"
@@ -9,7 +9,7 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
 if [ ! -d "$APP" ]; then
-    echo "Building $APP…"
+    echo "Building $APP ..."
     make app
 fi
 
