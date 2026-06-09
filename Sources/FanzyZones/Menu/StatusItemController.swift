@@ -122,7 +122,7 @@ final class StatusItemController: NSObject {
     }
 
     private func addLayoutsSection(to menu: NSMenu) {
-        let header = NSMenuItem(title: "Layouts — click a pane to snap, name to set active",
+        let header = NSMenuItem(title: "Layouts — pane snaps, name activates",
                                 action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)

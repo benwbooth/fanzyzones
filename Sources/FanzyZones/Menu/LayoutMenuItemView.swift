@@ -20,11 +20,18 @@ final class LayoutMenuItemView: NSView {
     private var hoveringEdit = false
     private var hoveringDelete = false
 
+    /// Marquee state: when the name is too long to fit, hovering the label scrolls
+    /// it so the full name is readable (native tooltips don't show reliably inside
+    /// an NSMenu, so we scroll instead).
+    private var marqueeTimer: Timer?
+    private var marqueeOffset: CGFloat = 0
+    private let marqueeGap: CGFloat = 28
+
     private let padding: CGFloat = 8
-    private let labelWidth: CGFloat = 104
+    private let labelWidth: CGFloat = 150
     private let paneGap: CGFloat = 2
 
-    static let itemSize = NSSize(width: 268, height: 92)
+    static let itemSize = NSSize(width: 314, height: 92)
 
     init(layout: Layout,
          isActive: Bool,
@@ -39,11 +46,27 @@ final class LayoutMenuItemView: NSView {
         self.onEdit = onEdit
         self.onDelete = onDelete
         super.init(frame: NSRect(origin: .zero, size: Self.itemSize))
+        toolTip = layout.name   // fallback for environments where it does show
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override var isFlipped: Bool { true }   // top-left origin matches normalized zones
+
+    // MARK: - Name metrics
+
+    private var nameFont: NSFont {
+        NSFont.systemFont(ofSize: 12, weight: isActive ? .semibold : .regular)
+    }
+
+    /// Width available to the name inside the label region.
+    private var nameAvailableWidth: CGFloat { labelWidth - 4 }
+
+    private var fullNameWidth: CGFloat {
+        (layout.name as NSString).size(withAttributes: [.font: nameFont]).width
+    }
+
+    private var nameIsTruncated: Bool { fullNameWidth > nameAvailableWidth }
 
     // MARK: - Geometry
 
@@ -95,20 +118,40 @@ final class LayoutMenuItemView: NSView {
                          xRadius: 5, yRadius: 5).fill()
         }
 
-        // Name + active badge. The name truncates (rather than wrapping over the
-        // badge) and the badge sits on its own line below it.
-        let nameStyle = NSMutableParagraphStyle()
-        nameStyle.lineBreakMode = .byTruncatingTail
-        let nameAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12,
-                                     weight: isActive ? .semibold : .regular),
-            .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: nameStyle
-        ]
-        (layout.name as NSString).draw(
-            in: CGRect(x: labelRect.minX + 2, y: labelRect.minY,
-                       width: labelWidth - 4, height: 30),
-            withAttributes: nameAttrs)
+        // Name + active badge. The name sits on top with the badge on its own line
+        // below it. The wider label fits most names; when one is still too long,
+        // hovering scrolls it (marquee) so the full name is readable.
+        let nameRect = CGRect(x: labelRect.minX + 2, y: labelRect.minY,
+                              width: nameAvailableWidth, height: 30)
+        if hoveringLabel && nameIsTruncated {
+            let style = NSMutableParagraphStyle()
+            style.lineBreakMode = .byClipping
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: nameFont,
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: style
+            ]
+            let span = fullNameWidth + marqueeGap
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(rect: nameRect).addClip()
+            // Draw two copies so the scroll loops seamlessly.
+            (layout.name as NSString).draw(
+                at: CGPoint(x: nameRect.minX - marqueeOffset, y: nameRect.minY),
+                withAttributes: attrs)
+            (layout.name as NSString).draw(
+                at: CGPoint(x: nameRect.minX - marqueeOffset + span, y: nameRect.minY),
+                withAttributes: attrs)
+            NSGraphicsContext.restoreGraphicsState()
+        } else {
+            let style = NSMutableParagraphStyle()
+            style.lineBreakMode = .byTruncatingTail
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: nameFont,
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: style
+            ]
+            (layout.name as NSString).draw(in: nameRect, withAttributes: attrs)
+        }
 
         // Only the active layout shows a badge; "set default" is implied by clicking.
         if isActive {
@@ -179,7 +222,15 @@ final class LayoutMenuItemView: NSView {
         hoveringLabel = false
         hoveringEdit = false
         hoveringDelete = false
+        stopMarquee()
         needsDisplay = true
+    }
+
+    /// Stop the marquee when the menu closes (the view leaves its window) so the
+    /// repeating timer doesn't keep the view alive.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { stopMarquee() }
     }
 
     private func updateHover(_ event: NSEvent) {
@@ -195,8 +246,33 @@ final class LayoutMenuItemView: NSView {
             hoveringLabel = newLabel
             hoveringEdit = newEdit
             hoveringDelete = newDelete
+            if newLabel && nameIsTruncated { startMarquee() } else { stopMarquee() }
             needsDisplay = true
         }
+    }
+
+    // MARK: - Marquee
+
+    private func startMarquee() {
+        guard marqueeTimer == nil else { return }
+        marqueeOffset = 0
+        // Add to .common modes so it animates during the menu's tracking run loop.
+        let timer = Timer(timeInterval: 0.03, target: self,
+                          selector: #selector(stepMarquee), userInfo: nil, repeats: true)
+        RunLoop.current.add(timer, forMode: .common)
+        marqueeTimer = timer
+    }
+
+    private func stopMarquee() {
+        marqueeTimer?.invalidate()
+        marqueeTimer = nil
+        if marqueeOffset != 0 { marqueeOffset = 0; needsDisplay = true }
+    }
+
+    @objc private func stepMarquee() {
+        marqueeOffset += 1
+        if marqueeOffset >= fullNameWidth + marqueeGap { marqueeOffset = 0 }
+        needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {

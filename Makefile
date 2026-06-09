@@ -2,7 +2,7 @@
 
 APP_NAME    := FanzyZones
 BUNDLE_ID   := com.fanzyzones.app
-VERSION     := 0.1.3
+VERSION     := 0.1.4
 CONFIG      := release
 
 BUILD_DIR   := .build/$(CONFIG)
