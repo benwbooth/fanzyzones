@@ -18,7 +18,7 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       sha256: ${{ steps.meta.outputs.sha256 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # The project needs Swift 6; pick the latest stable Xcode on the runner.
       - name: Select Xcode (Swift 6)
@@ -28,6 +28,37 @@ jobs:
 
       - name: Show toolchain
         run: swift --version
+
+      # Sign with a stable identity when the SIGNING_P12 secret is configured, so the
+      # designated requirement (and therefore the user's TCC/Accessibility grant) stays
+      # the same across releases. Without the secret (PRs, forks) this is a no-op and
+      # the Makefile falls back to ad-hoc signing.
+      - name: Import signing identity (optional)
+        env:
+          SIGNING_P12: ${{ secrets.SIGNING_P12 }}
+          SIGNING_P12_PASSWORD: ${{ secrets.SIGNING_P12_PASSWORD }}
+          SIGNING_CERT_PEM: ${{ secrets.SIGNING_CERT_PEM }}
+        run: |
+          if [ -z "$SIGNING_P12" ]; then
+            echo "No signing secret - building ad-hoc."
+            exit 0
+          fi
+          KEYCHAIN_PW=$(uuidgen)
+          security create-keychain -p "$KEYCHAIN_PW" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PW" build.keychain
+          echo "$SIGNING_P12" | base64 -d > /tmp/identity.p12
+          security import /tmp/identity.p12 -k build.keychain \
+            -P "$SIGNING_P12_PASSWORD" -A -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PW" build.keychain >/dev/null
+          echo "$SIGNING_CERT_PEM" > /tmp/cert.pem
+          sudo security add-trusted-cert -d -r trustRoot \
+            -k /Library/Keychains/System.keychain /tmp/cert.pem
+          rm -f /tmp/identity.p12
+          echo "SIGN_IDENTITY=FanzyZones Release" >> "$GITHUB_ENV"
 
       - name: Build app + DMG
         run: |
@@ -45,7 +76,7 @@ jobs:
           fi
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FanzyZones-dmg
           path: dist/FanzyZones.dmg
@@ -53,7 +84,7 @@ jobs:
       # On a version tag, publish a GitHub Release with the DMG attached.
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/FanzyZones.dmg
           generate_release_notes: true
@@ -66,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tap
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: benwbooth/homebrew-fanzyzones
           ssh-key: ${{ secrets.TAP_DEPLOY_KEY }}
