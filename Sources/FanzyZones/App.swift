@@ -59,8 +59,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         applyHotkeySetting()
 
-        // Keep hotkey registration in sync when settings change.
-        state.onChange = { [weak self] in self?.applyHotkeySetting() }
+        // Keep hotkey registration and the menu in sync when state changes.
+        state.onChange = { [weak self] in
+            self?.applyHotkeySetting()
+            self?.statusItemController?.rebuildMenu()
+        }
 
         // Rebuild the menu when displays are added/removed/rearranged.
         NotificationCenter.default.addObserver(

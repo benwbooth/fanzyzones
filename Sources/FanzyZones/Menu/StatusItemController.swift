@@ -42,10 +42,25 @@ final class StatusItemController: NSObject {
         rebuildMenu()
     }
 
-    /// Rebuilds the dropdown from current state.
+    /// Rebuilds the dropdown from current state, reusing the existing menu object.
     func rebuildMenu() {
-        let menu = NSMenu()
-        menu.delegate = self
+        let menu: NSMenu
+        if let existing = statusItem.menu {
+            menu = existing
+        } else {
+            menu = NSMenu()
+            menu.delegate = self
+            statusItem.menu = menu
+        }
+        populate(menu)
+    }
+
+    /// Fills `menu` with the current items. Mutates the passed-in menu in place so
+    /// that rebuilding from `menuNeedsUpdate(_:)` updates the menu that is actually
+    /// about to open (replacing `statusItem.menu` there leaves the open menu stale,
+    /// which made selections appear to need a second click).
+    private func populate(_ menu: NSMenu) {
+        menu.removeAllItems()
 
         addHeader(to: menu)
         addAccessibilitySection(to: menu)
@@ -80,8 +95,6 @@ final class StatusItemController: NSObject {
                               action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
-
-        statusItem.menu = menu
     }
 
     // MARK: - Menu sections
@@ -139,7 +152,12 @@ final class StatusItemController: NSObject {
         }
 
         let activeId = state.layoutId(forDisplayUUID: target)
-        for layout in state.allLayouts {
+        // Show the active layout first, keeping the rest in their normal order.
+        var orderedLayouts = state.allLayouts
+        if let activeIdx = orderedLayouts.firstIndex(where: { $0.id == activeId }) {
+            orderedLayouts.insert(orderedLayouts.remove(at: activeIdx), at: 0)
+        }
+        for layout in orderedLayouts {
             let item = NSMenuItem()
             item.view = LayoutMenuItemView(
                 layout: layout,
@@ -233,6 +251,6 @@ final class StatusItemController: NSObject {
 
 extension StatusItemController: NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
-        rebuildMenu()
+        populate(menu)
     }
 }

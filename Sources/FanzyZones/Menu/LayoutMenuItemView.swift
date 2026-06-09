@@ -95,16 +95,19 @@ final class LayoutMenuItemView: NSView {
                          xRadius: 5, yRadius: 5).fill()
         }
 
-        // Name + active badge.
+        // Name + active badge. The name truncates (rather than wrapping over the
+        // badge) and the badge sits on its own line below it.
+        let nameStyle = NSMutableParagraphStyle()
+        nameStyle.lineBreakMode = .byTruncatingTail
         let nameAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 12,
                                      weight: isActive ? .semibold : .regular),
-            .foregroundColor: NSColor.labelColor
+            .foregroundColor: NSColor.labelColor,
+            .paragraphStyle: nameStyle
         ]
-        let nameOrigin = CGPoint(x: labelRect.minX + 2, y: labelRect.minY + 4)
         (layout.name as NSString).draw(
-            in: CGRect(x: nameOrigin.x, y: nameOrigin.y,
-                       width: labelWidth - 4, height: 34),
+            in: CGRect(x: labelRect.minX + 2, y: labelRect.minY,
+                       width: labelWidth - 4, height: 30),
             withAttributes: nameAttrs)
 
         // Only the active layout shows a badge; "set default" is implied by clicking.
@@ -114,7 +117,7 @@ final class LayoutMenuItemView: NSView {
                 .foregroundColor: accent
             ]
             ("✓ Active" as NSString).draw(
-                at: CGPoint(x: labelRect.minX + 2, y: labelRect.minY + 24),
+                at: CGPoint(x: labelRect.minX + 2, y: labelRect.minY + 33),
                 withAttributes: badgeAttrs)
         }
 
